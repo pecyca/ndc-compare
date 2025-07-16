@@ -1,4 +1,4 @@
-// src/components/DrugInfo.js
+﻿// src/components/DrugInfo.js
 import React, { useEffect, useState } from "react";
 import { getRxcuiFromNdc, getBrandName, getFormDescription } from "../utils/rxnorm";
 import { getShortageInfo } from "../utils/shortages";

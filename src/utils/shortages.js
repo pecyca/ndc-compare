@@ -1,4 +1,4 @@
-// src/utils/shortages.js
+﻿// src/utils/shortages.js
 export async function getShortageInfo(rxcui) {
     try {
         const response = await fetch(`https://api.fda.gov/drug/shortages.json?search=rxCui:${rxcui}`);

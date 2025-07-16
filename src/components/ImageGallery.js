@@ -1,4 +1,4 @@
-// src/components/ImageGallery.js
+﻿// src/components/ImageGallery.js
 import React, { useEffect, useState } from "react";
 
 function ImageGallery({ ndc, rxcui }) {
