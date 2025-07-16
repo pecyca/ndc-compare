@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import DrugInfo from './DrugInfo';
 import { getRxcuiFromNdc } from '../utils/rxnorm';
 
