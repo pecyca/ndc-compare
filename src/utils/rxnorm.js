@@ -1,4 +1,4 @@
-﻿// src/utils/rxnorm.js
+// src/utils/rxnorm.js
 export async function getRxcuiFromNdc(ndc) {
 	const formatted = ndc.replace(/\D/g, "").padStart(11, "0");
 	const dashed = `${formatted.slice(0, 5)}-${formatted.slice(5, 9)}-${formatted.slice(9)}`;
