@@ -7,13 +7,14 @@ export async function getRxCui(ndc) {
 export async function getBrandName(rxCui) {
 	const response = await fetch(`https://rxnav.nlm.nih.gov/REST/rxcui/${rxCui}/related.json?tty=BN`);
 	const data = await response.json();
-	return data?.relatedGroup?.conceptGroup?.[0]?.conceptProperties?.[0]?.name || 'Unknown';
+	const brand = data?.relatedGroup?.conceptGroup?.[0]?.conceptProperties?.[0]?.name;
+	return brand || 'Unknown';
 }
 
 export async function getFormDescription(rxCui) {
 	const response = await fetch(`https://rxnav.nlm.nih.gov/REST/rxcui/${rxCui}/properties.json`);
 	const data = await response.json();
-	return data?.properties?.dosageForm || 'Unknown';
+	return data?.properties?.doseFormName || 'Unknown';
 }
 
 export async function isRxCuiMatch(rxCui1, rxCui2) {
