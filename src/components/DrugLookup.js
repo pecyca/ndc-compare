@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DrugInfo from './DrugInfo';
-import { getRxcuiFromNdc } from '../utils/rxnorm';
+import { getRxCui } from '../utils/rxnorm';
 
 function DrugLookup() {
     const [ndc1, setNdc1] = useState('');
@@ -22,8 +22,8 @@ function DrugLookup() {
         }
 
         try {
-            const rx1 = ndc1 ? await getRxcuiFromNdc(ndc1) : null;
-            const rx2 = ndc2 ? await getRxcuiFromNdc(ndc2) : null;
+            const rx1 = ndc1 ? await getRxcui(ndc1) : null;
+            const rx2 = ndc2 ? await getRxcui(ndc2) : null;
 
             setRxcui1(rx1);
             setRxcui2(rx2);
