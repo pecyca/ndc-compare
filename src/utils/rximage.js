@@ -1,29 +1,26 @@
 export async function getRxImageUrls({ ndc, rxCui }) {
     const urls = [];
-    const trySources = [
-        { type: "NDC", id: ndc },
-        { type: "RXCUI", id: rxCui }
-    ];
 
-    for (const { type, id } of trySources) {
-        if (!id) continue;
+    if (ndc) {
+        const formattedNdc = ndc.replace(/[^0-9-]/g, "").replace(/-/g, "");
+        urls.push(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?resolution=300&idtype=NDC&id=${formattedNdc}`);
+    }
 
-        const apiUrl = `https://rximage.nlm.nih.gov/api/rximage/1/rxnav?resolution=300&idtype=${type}&id=${id}`;
-        const proxyUrl = `/.netlify/functions/proxy?url=${encodeURIComponent(apiUrl)}`;
+    if (rxCui) {
+        urls.push(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?resolution=300&idtype=RXCUI&id=${rxCui}`);
+    }
 
+    for (const url of urls) {
         try {
-            const response = await fetch(proxyUrl);
-            const data = await response.json();
-            const images = data?.nlmRxImages || [];
-
-            if (images.length) {
-                urls.push(...images.map(img => img.imageUrl));
-                break; // stop at first valid result
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data?.nlmRxImages?.length) {
+                return data.nlmRxImages.map((img) => img.imageUrl);
             }
         } catch (err) {
-            console.error(`RxImage lookup failed for ${type}:`, err);
+            console.warn("RxImage fetch failed:", err);
         }
     }
 
-    return urls;
+    return [];
 }

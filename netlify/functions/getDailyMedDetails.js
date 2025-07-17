@@ -3,8 +3,6 @@ import xml2js from 'xml2js';
 
 export async function handler(event) {
     try {
-        console.log('Raw event:', JSON.stringify(event)); // Log for debugging Netlify behavior
-
         const rxCui = event.queryStringParameters?.rxCui || event.queryStringParameters?.rxcui;
 
         if (!rxCui) {
@@ -14,11 +12,20 @@ export async function handler(event) {
             };
         }
 
-        // Step 1: Fetch SPL list
-        const splsRes = await fetch(`https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?rxcui=${rxCui}`);
-        const splsJson = await splsRes.json();
+        // Step 1: Get SPL list from DailyMed
+        const splsUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?rxcui=${rxCui}`;
+        const splsRes = await fetch(splsUrl);
 
+        if (!splsRes.ok) {
+            return {
+                statusCode: splsRes.status,
+                body: JSON.stringify({ error: 'Failed to retrieve SPL list', status: splsRes.status }),
+            };
+        }
+
+        const splsJson = await splsRes.json();
         const splList = splsJson.data?.spls || [];
+
         if (splList.length === 0) {
             return {
                 statusCode: 404,
@@ -28,14 +35,23 @@ export async function handler(event) {
 
         const latestSetId = splList[0].setid;
 
-        // Step 2: Fetch XML
-        const xmlRes = await fetch(`https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/${latestSetId}.xml`);
+        // Step 2: Fetch SPL XML
+        const xmlUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/${latestSetId}.xml`;
+        const xmlRes = await fetch(xmlUrl);
+
+        if (!xmlRes.ok) {
+            return {
+                statusCode: xmlRes.status,
+                body: JSON.stringify({ error: 'Failed to retrieve SPL XML', status: xmlRes.status }),
+            };
+        }
+
         const xmlText = await xmlRes.text();
 
         const parser = new xml2js.Parser({ explicitArray: false });
         const xmlJson = await parser.parseStringPromise(xmlText);
 
-        // Step 3: Extract sections
+        // Step 3: Parse labeled sections
         const sections = {};
         const document = xmlJson.document || {};
         const structuredBody = document.component?.structuredBody?.component || [];
