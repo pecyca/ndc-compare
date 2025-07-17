@@ -1,53 +1,56 @@
+// src/App.js
 import React, { useState } from "react";
+import DrugLookup from "./components/DrugLookup";
 import DrugInfo from "./components/DrugInfo";
 import "./App.css";
 
 function App() {
     const [ndc1, setNdc1] = useState("");
     const [ndc2, setNdc2] = useState("");
-    const [showResults, setShowResults] = useState(false);
-
-    const handleCompare = (e) => {
-        e.preventDefault();
-        if (!ndc1.trim()) return;
-        setShowResults(true);
-    };
+    const [results, setResults] = useState(null);
+    const [matchStatus, setMatchStatus] = useState(null);
 
     const handleReset = () => {
         setNdc1("");
         setNdc2("");
-        setShowResults(false);
+        setResults(null);
+        setMatchStatus(null);
     };
 
     return (
-        <div className="app">
+        <div className="App">
             <h1>NDC Comparison Tool</h1>
-            <form onSubmit={handleCompare}>
-                <div className="input-group">
-                    <input
-                        type="text"
-                        placeholder="Enter NDC 1"
-                        value={ndc1}
-                        onChange={(e) => setNdc1(e.target.value)}
+            <DrugLookup
+                ndc1={ndc1}
+                ndc2={ndc2}
+                setNdc1={setNdc1}
+                setNdc2={setNdc2}
+                setResults={setResults}
+                setMatchStatus={setMatchStatus}
+            />
+            {matchStatus && <div className="match-status">{matchStatus}</div>}
+            {results && (
+                <>
+                    <DrugInfo
+                        ndc={results[0]?.ndc}
+                        rxCui={results[0]?.rxCui}
+                        compareTo={results[1]?.ndc}
+                        label="Drug 1"
                     />
-                    <input
-                        type="text"
-                        placeholder="Enter NDC 2 (optional)"
-                        value={ndc2}
-                        onChange={(e) => setNdc2(e.target.value)}
-                    />
-                </div>
-                <div className="button-group">
-                    <button type="submit">Compare</button>
-                    <button type="button" onClick={handleReset}>Reset</button>
-                </div>
-            </form>
-
-            {showResults && (
-                <div className="results-section">
-                    <DrugInfo ndc1={ndc1} ndc2={ndc2} />
-                </div>
+                    {ndc2 && results[1] && (
+                        <DrugInfo
+                            ndc={results[1]?.ndc}
+                            rxCui={results[1]?.rxCui}
+                            compareTo={results[0]?.ndc}
+                            label="Drug 2"
+                        />
+                    )}
+                    <button onClick={handleReset} className="reset-button">
+                        Reset
+                    </button>
+                </>
             )}
+
         </div>
     );
 }

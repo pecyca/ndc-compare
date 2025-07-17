@@ -4,6 +4,20 @@ import { getRxCui } from '../utils/rxnorm';
 function DrugLookup({ ndc1, ndc2, setNdc1, setNdc2, setResults, setMatchStatus }) {
     const [error, setError] = React.useState('');
 
+    const fetchDailyMedDetails = async (rxCui) => {
+        try {
+            const response = await fetch(`/.netlify/functions/getDailyMedDetails?rxcui=${rxCui}`);
+            if (!response.ok) {
+                throw new Error(`DailyMed API returned status ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (err) {
+            console.error(`Failed to fetch DailyMed details for RxCUI ${rxCui}:`, err);
+            return null;
+        }
+    };
+
     const handleCompare = async () => {
         setError('');
         setMatchStatus(null);
@@ -17,10 +31,25 @@ function DrugLookup({ ndc1, ndc2, setNdc1, setNdc2, setResults, setMatchStatus }
             const rx1 = ndc1 ? await getRxCui(ndc1) : null;
             const rx2 = ndc2 ? await getRxCui(ndc2) : null;
 
-            const results = [
-                ndc1 ? { ndc: ndc1, rxCui: rx1 } : null,
-                ndc2 ? { ndc: ndc2, rxCui: rx2 } : null,
-            ].filter(Boolean);
+            const results = [];
+
+            if (ndc1 && rx1) {
+                const dailyMed1 = await fetchDailyMedDetails(rx1);
+                results.push({
+                    ndc: ndc1,
+                    rxCui: rx1,
+                    ...dailyMed1
+                });
+            }
+
+            if (ndc2 && rx2) {
+                const dailyMed2 = await fetchDailyMedDetails(rx2);
+                results.push({
+                    ndc: ndc2,
+                    rxCui: rx2,
+                    ...dailyMed2
+                });
+            }
 
             setResults(results);
 
@@ -38,14 +67,6 @@ function DrugLookup({ ndc1, ndc2, setNdc1, setNdc2, setResults, setMatchStatus }
             console.error(err);
             setError('Error during comparison: ' + err.message);
         }
-    };
-
-    const handleReset = () => {
-        setNdc1('');
-        setNdc2('');
-        setResults(null);
-        setMatchStatus(null);
-        setError('');
     };
 
     const handleKeyDown = (e) => {
@@ -71,7 +92,6 @@ function DrugLookup({ ndc1, ndc2, setNdc1, setNdc2, setResults, setMatchStatus }
                 onKeyDown={handleKeyDown}
             />
             <button onClick={handleCompare}>Compare</button>
-            <button onClick={handleReset}>Reset</button>
 
             {error && <p className="error">{error}</p>}
         </div>
