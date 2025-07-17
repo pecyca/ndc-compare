@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// no import needed — use global fetch
 import xml2js from 'xml2js';
 
 export async function handler(event) {
