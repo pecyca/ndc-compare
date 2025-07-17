@@ -1,4 +1,4 @@
-﻿import fetch from 'node-fetch';
+﻿// No import needed — use global fetch
 
 export async function handler(event) {
     const url = event.queryStringParameters?.url;
