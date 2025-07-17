@@ -1,51 +1,28 @@
 import React, { useEffect, useState } from 'react';
+import { getRxImageUrls } from '../utils/rximage';
 
 function ImageGallery({ ndc, rxCui }) {
     const [images, setImages] = useState([]);
 
     useEffect(() => {
         async function fetchImages() {
-            const urls = [];
-
-            if (ndc) {
-                const safeNdc = ndc?.replace?.(/[^0-9-]/g, '')?.replace?.(/-/g, '') || '';
-                urls.push(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?resolution=300&idtype=NDC&id=${safeNdc}`);
-            }
-
-            if (rxCui) {
-                urls.push(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?resolution=300&idtype=RXCUI&id=${rxCui}`);
-            }
-
-            const tryUrls = async (urls) => {
-                for (let url of urls) {
-                    try {
-                        const res = await fetch(url);
-                        const data = await res.json();
-                        if (data.nlmRxImages?.length) return data.nlmRxImages;
-                    } catch (err) {
-                        console.error('Image fetch error:', err);
-                    }
-                }
-                return [];
-            };
-
-            const foundImages = await tryUrls(urls);
-            setImages(foundImages);
+            const urls = await getRxImageUrls({ ndc, rxCui });
+            setImages(urls);
         }
 
         if (ndc || rxCui) fetchImages();
     }, [ndc, rxCui]);
 
-    if (!images.length) return <p>No images available.</p>;
+    if (!images.length) return <p className="italic text-sm">No images available.</p>;
 
     return (
-        <div className="image-gallery">
-            {images.map((img, i) => (
+        <div className="image-gallery grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
+            {images.map((url, i) => (
                 <img
                     key={i}
-                    src={img.imageUrl}
-                    alt={img.name || 'Drug Image'}
-                    className="drug-image"
+                    src={url}
+                    alt="Drug"
+                    className="rounded shadow-md object-contain h-32 w-full"
                 />
             ))}
         </div>

@@ -1,18 +1,14 @@
-// src/utils/shortages.js
-
-function encodeUrl(url) {
-    return encodeURIComponent(url);
-}
-
 export async function getShortageInfo(rxcui) {
     try {
-        const targetUrl = encodeUrl(`https://labels.fda.gov/api/drug-event.json?search=rxnorm:${rxcui}+AND+shortage:true&limit=1`);
-        const url = `/.netlify/functions/proxy?url=${targetUrl}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        return data.results && data.results.length > 0 ? "⚠️ Shortage reported" : "No current shortage";
-    } catch (error) {
-        console.error("Shortage API error:", error);
+        const baseUrl = `https://labels.fda.gov/api/drug-event.json?search=rxnorm:${rxcui}+AND+shortage:true&limit=1`;
+        const proxyUrl = `/.netlify/functions/proxy?url=${encodeURIComponent(baseUrl)}`;
+        const response = await fetch(proxyUrl);
+        const text = await response.text();
+
+        const data = JSON.parse(text);
+        return data.results?.length ? "⚠️ Shortage reported" : "No current shortage";
+    } catch (err) {
+        console.error("Shortage API error:", err);
         return "Shortage status unknown";
     }
 }

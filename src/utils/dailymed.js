@@ -1,36 +1,33 @@
-// src/utils/dailymed.js
-
-function encodeUrl(url) {
-    return encodeURIComponent(url);
-}
-
 export async function getDailyMedDetails(rxCui) {
     try {
-        const baseTarget = encodeUrl(`https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?rxnorm=${rxCui}`);
-        const baseUrl = `/.netlify/functions/proxy?url=${baseTarget}`;
-        const splListResponse = await fetch(baseUrl);
-        const splList = await splListResponse.json();
+        const baseUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?rxnorm=${rxCui}`;
+        const listUrl = `/.netlify/functions/proxy?url=${encodeURIComponent(baseUrl)}`;
+        const listResp = await fetch(listUrl);
+        const listData = await listResp.json();
 
-        if (!splList?.data?.spls?.length) return {};
+        const setId = listData.data?.spls?.[0]?.setid;
+        if (!setId) throw new Error("No SPL Set ID found");
 
-        const setId = splList.data.spls[0].setid;
-        const structuredTarget = encodeUrl(`https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/${setId}/structured-label`);
-        const structuredUrl = `/.netlify/functions/proxy?url=${structuredTarget}`;
-        const structuredResponse = await fetch(structuredUrl);
-        const structuredData = await structuredResponse.json();
+        const structuredUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/${setId}/structured.json`;
+        const structuredProxy = `/.netlify/functions/proxy?url=${encodeURIComponent(structuredUrl)}`;
+        const structuredResp = await fetch(structuredProxy);
+        const structuredData = await structuredResp.json();
 
-        const sections = {};
-        for (const section of structuredData.data?.structuredProductLabel?.component || []) {
-            const title = section.title?.toUpperCase();
-            const html = section.text;
-            if (title && html) {
-                sections[title] = html;
-            }
-        }
-
-        return sections;
-    } catch (error) {
-        console.error("DailyMed API error:", error);
-        return {};
+        return {
+            Indications: structuredData?.indications_and_usage || "Not available",
+            Dosage: structuredData?.dosage_and_administration || "Not available",
+            Warnings: structuredData?.warnings_and_cautions || "Not available",
+            Storage: structuredData?.how_supplied || "Not available",
+            Preparations: structuredData?.dosage_forms_and_strengths || "Not available",
+        };
+    } catch (err) {
+        console.error(`Failed to fetch DailyMed details for RxCUI ${rxCui}:`, err);
+        return {
+            Indications: "Error loading",
+            Dosage: "Error loading",
+            Warnings: "Error loading",
+            Storage: "Error loading",
+            Preparations: "Error loading"
+        };
     }
 }
