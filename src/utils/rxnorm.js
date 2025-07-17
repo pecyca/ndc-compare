@@ -1,8 +1,9 @@
 export async function getRxCui(ndc) {
-	const response = await fetch(`https://rxnav.nlm.nih.gov/REST/rxcui.json?id=${ndc}&idtype=NDC`);
+	const response = await fetch(`/.netlify/functions/getRxCui?ndc=${ndc}`);
 	const data = await response.json();
 	return data.idGroup?.rxnormId?.[0] || null;
 }
+
 
 export async function getBrandName(rxCui) {
 	const response = await fetch(`https://rxnav.nlm.nih.gov/REST/rxcui/${rxCui}/related.json?tty=BN`);
