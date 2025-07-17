@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 
 function ImageGallery({ ndc, rxCui }) {
     const [images, setImages] = useState([]);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
         async function fetchImages() {
@@ -37,7 +36,6 @@ function ImageGallery({ ndc, rxCui }) {
         if (ndc || rxCui) fetchImages();
     }, [ndc, rxCui]);
 
-    if (error) return <p>Error loading images.</p>;
     if (!images.length) return <p>No images available.</p>;
 
     return (
