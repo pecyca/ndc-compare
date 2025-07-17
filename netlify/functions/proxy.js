@@ -1,38 +1,30 @@
-﻿// netlify/functions/proxy.js
+﻿import fetch from 'node-fetch';
 
 export async function handler(event) {
-    const targetUrl = event.queryStringParameters.url;
+    const url = event.queryStringParameters?.url;
 
-    if (!targetUrl) {
+    if (!url) {
         return {
             statusCode: 400,
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-            },
-            body: JSON.stringify({ error: "Missing 'url' query parameter" }),
+            body: 'Missing URL parameter',
         };
     }
 
     try {
-        const res = await fetch(targetUrl);
-        const contentType = res.headers.get("content-type") || "";
-        const body = await res.text();
+        const response = await fetch(url);
+        const contentType = response.headers.get('content-type') || 'text/plain';
+        const body = await response.text();
 
         return {
-            statusCode: res.status,
-            headers: {
-                "Content-Type": contentType,
-                "Access-Control-Allow-Origin": "*", // 💥 this enables CORS
-            },
-            body: body,
+            statusCode: response.status,
+            headers: { 'Content-Type': contentType },
+            body,
         };
     } catch (err) {
+        console.error('Proxy fetch failed:', err);
         return {
             statusCode: 500,
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-            },
-            body: JSON.stringify({ error: "Proxy fetch failed", details: err.message }),
+            body: 'Proxy fetch failed: ' + err.message,
         };
     }
 }

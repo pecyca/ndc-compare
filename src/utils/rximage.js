@@ -12,7 +12,8 @@ export async function getRxImageUrls({ ndc, rxCui }) {
 
     for (const url of urls) {
         try {
-            const res = await fetch(url);
+            const proxyUrl = `/.netlify/functions/proxy?url=${encodeURIComponent(url)}`;
+            const res = await fetch(proxyUrl);
             const data = await res.json();
             if (data?.nlmRxImages?.length) {
                 return data.nlmRxImages.map((img) => img.imageUrl);

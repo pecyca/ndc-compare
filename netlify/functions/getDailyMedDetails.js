@@ -3,8 +3,9 @@ import xml2js from 'xml2js';
 
 export async function handler(event) {
     try {
-        const rxCui = event.queryStringParameters?.rxCui || event.queryStringParameters?.rxcui;
+        console.log('Raw event:', JSON.stringify(event));
 
+        const rxCui = event.queryStringParameters?.rxCui || event.queryStringParameters?.rxcui;
         if (!rxCui) {
             return {
                 statusCode: 400,
@@ -12,17 +13,7 @@ export async function handler(event) {
             };
         }
 
-        // Step 1: Get SPL list from DailyMed
-        const splsUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?rxcui=${rxCui}`;
-        const splsRes = await fetch(splsUrl);
-
-        if (!splsRes.ok) {
-            return {
-                statusCode: splsRes.status,
-                body: JSON.stringify({ error: 'Failed to retrieve SPL list', status: splsRes.status }),
-            };
-        }
-
+        const splsRes = await fetch(`https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?rxcui=${rxCui}`);
         const splsJson = await splsRes.json();
         const splList = splsJson.data?.spls || [];
 
@@ -34,24 +25,27 @@ export async function handler(event) {
         }
 
         const latestSetId = splList[0].setid;
+        const xmlRes = await fetch(`https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/${latestSetId}.xml`);
+        const xmlText = await xmlRes.text();
 
-        // Step 2: Fetch SPL XML
-        const xmlUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/${latestSetId}.xml`;
-        const xmlRes = await fetch(xmlUrl);
+        console.log("Raw SPL XML (start):", xmlText.slice(0, 500));
 
-        if (!xmlRes.ok) {
+        let xmlJson;
+        try {
+            const parser = new xml2js.Parser({ explicitArray: false });
+            xmlJson = await parser.parseStringPromise(xmlText);
+        } catch (parseErr) {
+            console.error("XML parsing failed:", parseErr.message);
             return {
-                statusCode: xmlRes.status,
-                body: JSON.stringify({ error: 'Failed to retrieve SPL XML', status: xmlRes.status }),
+                statusCode: 500,
+                body: JSON.stringify({
+                    error: "Failed to parse SPL XML",
+                    message: parseErr.message,
+                    raw: xmlText.slice(0, 300)
+                }),
             };
         }
 
-        const xmlText = await xmlRes.text();
-
-        const parser = new xml2js.Parser({ explicitArray: false });
-        const xmlJson = await parser.parseStringPromise(xmlText);
-
-        // Step 3: Parse labeled sections
         const sections = {};
         const document = xmlJson.document || {};
         const structuredBody = document.component?.structuredBody?.component || [];
