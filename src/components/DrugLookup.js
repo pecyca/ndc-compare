@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
-import DrugInfo from './DrugInfo';
+import React from 'react';
 import { getRxCui } from '../utils/rxnorm';
 
-function DrugLookup() {
-    const [ndc1, setNdc1] = useState('');
-    const [ndc2, setNdc2] = useState('');
-    const [rxcui1, setRxcui1] = useState(null);
-    const [rxcui2, setRxcui2] = useState(null);
-    const [submitted, setSubmitted] = useState(false);
-    const [error, setError] = useState('');
-    const [matchMessage, setMatchMessage] = useState('');
+function DrugLookup({ ndc1, ndc2, setNdc1, setNdc2, setResults, setMatchStatus }) {
+    const [error, setError] = React.useState('');
 
     const handleCompare = async () => {
         setError('');
-        setMatchMessage('');
-        setSubmitted(false);
+        setMatchStatus(null);
 
         if (!ndc1 && !ndc2) {
             setError('Please enter at least one NDC.');
@@ -22,32 +14,28 @@ function DrugLookup() {
         }
 
         try {
-            const rx1 = ndc1 ? await getRxcui(ndc1) : null;
-            const rx2 = ndc2 ? await getRxcui(ndc2) : null;
+            const rx1 = ndc1 ? await getRxCui(ndc1) : null;
+            const rx2 = ndc2 ? await getRxCui(ndc2) : null;
 
-            setRxcui1(rx1);
-            setRxcui2(rx2);
+            const results = [
+                ndc1 ? { ndc: ndc1, rxCui: rx1 } : null,
+                ndc2 ? { ndc: ndc2, rxCui: rx2 } : null,
+            ].filter(Boolean);
+
+            setResults(results);
 
             if (rx1 && rx2) {
-                if (rx1 === rx2) {
-                    setMatchMessage('✅ RX Match by RxCUI');
-                } else {
-                    setMatchMessage('⚠️ Different RxCUI — may still be clinically equivalent');
-                }
+                setMatchStatus(rx1 === rx2
+                    ? '✅ RX Match by RxCUI'
+                    : '⚠️ Different RxCUI — may still be clinically equivalent'
+                );
+            } else if (rx1 || rx2) {
+                setMatchStatus('ℹ️ Partial match — only one valid RxCUI found');
+            } else {
+                setMatchStatus('❌ No RxCUI found for either NDC');
             }
-
-            if (!rx1 && ndc1) {
-                setError(`No RxCUI found for NDC 1 (${ndc1})`);
-                return;
-            }
-
-            if (!rx2 && ndc2) {
-                setError(`No RxCUI found for NDC 2 (${ndc2})`);
-                return;
-            }
-
-            setSubmitted(true);
         } catch (err) {
+            console.error(err);
             setError('Error during comparison: ' + err.message);
         }
     };
@@ -55,17 +43,13 @@ function DrugLookup() {
     const handleReset = () => {
         setNdc1('');
         setNdc2('');
-        setRxcui1(null);
-        setRxcui2(null);
-        setSubmitted(false);
+        setResults(null);
+        setMatchStatus(null);
         setError('');
-        setMatchMessage('');
     };
 
     const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            handleCompare();
-        }
+        if (e.key === 'Enter') handleCompare();
     };
 
     return (
@@ -86,30 +70,10 @@ function DrugLookup() {
                 onChange={(e) => setNdc2(e.target.value)}
                 onKeyDown={handleKeyDown}
             />
-            <button onClick={handleCompare}>Compare or Lookup</button>
+            <button onClick={handleCompare}>Compare</button>
             <button onClick={handleReset}>Reset</button>
 
             {error && <p className="error">{error}</p>}
-            {matchMessage && <p className="match-message">{matchMessage}</p>}
-
-            {submitted && (
-                <div className="result-container">
-                    {rxcui1 && (
-                        <DrugInfo
-                            ndc={ndc1}
-                            rxcui={rxcui1}
-                            label="🧾 Drug Information (NDC 1)"
-                        />
-                    )}
-                    {rxcui2 && (
-                        <DrugInfo
-                            ndc={ndc2}
-                            rxcui={rxcui2}
-                            label="🧾 Drug Information (NDC 2)"
-                        />
-                    )}
-                </div>
-            )}
         </div>
     );
 }
