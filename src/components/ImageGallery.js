@@ -1,52 +1,55 @@
-// src/components/ImageGallery.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 
-function ImageGallery({ ndc, rxcui }) {
+function ImageGallery({ ndc, rxCui }) {
     const [images, setImages] = useState([]);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchImages = async () => {
-            const formatted = ndc.replace(/\D/g, "").padStart(11, "0");
-            const dashed = `${formatted.slice(0, 5)}-${formatted.slice(5, 9)}-${formatted.slice(9)}`;
-            let found = [];
+        async function fetchImages() {
+            const urls = [];
 
-            try {
-                const res = await fetch(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?ndc=${dashed}`);
-                const json = await res.json();
-                found = json?.nlmRxImages || [];
-                if (!found.length && rxcui) {
-                    const alt = await fetch(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?rxcui=${rxcui}`);
-                    const altJson = await alt.json();
-                    found = altJson?.nlmRxImages || [];
-                }
-                setImages(found);
-            } catch (e) {
-                console.error("Error loading images", e);
-                setImages([]);
+            if (ndc) {
+                const safeNdc = ndc?.replace?.(/[^0-9-]/g, '')?.replace?.(/-/g, '') || '';
+                urls.push(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?resolution=300&idtype=NDC&id=${safeNdc}`);
             }
-        };
 
-        fetchImages();
-    }, [ndc, rxcui]);
+            if (rxCui) {
+                urls.push(`https://rximage.nlm.nih.gov/api/rximage/1/rxnav?resolution=300&idtype=RXCUI&id=${rxCui}`);
+            }
+
+            const tryUrls = async (urls) => {
+                for (let url of urls) {
+                    try {
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        if (data.nlmRxImages?.length) return data.nlmRxImages;
+                    } catch (err) {
+                        console.error('Image fetch error:', err);
+                    }
+                }
+                return [];
+            };
+
+            const foundImages = await tryUrls(urls);
+            setImages(foundImages);
+        }
+
+        if (ndc || rxCui) fetchImages();
+    }, [ndc, rxCui]);
+
+    if (error) return <p>Error loading images.</p>;
+    if (!images.length) return <p>No images available.</p>;
 
     return (
-        <div>
-            <h4>Images</h4>
-            {images.length > 0 ? (
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    {images.map((img, idx) => (
-                        <img
-                            key={idx}
-                            src={img.imageUrl}
-                            alt={img.ndc11}
-                            style={{ maxHeight: "100px", border: "1px solid #ccc", borderRadius: "4px" }}
-                        />
-                    ))}
-                </div>
-            ) : (
-                <p>No images found. You may upload one below.</p>
-            )}
-            <input type="file" />
+        <div className="image-gallery">
+            {images.map((img, i) => (
+                <img
+                    key={i}
+                    src={img.imageUrl}
+                    alt={img.name || 'Drug Image'}
+                    className="drug-image"
+                />
+            ))}
         </div>
     );
 }
