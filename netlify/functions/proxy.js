@@ -1,30 +1,54 @@
-﻿// No import needed — use global fetch
+﻿import fetch from "node-fetch";
 
-export async function handler(event) {
-    const url = event.queryStringParameters?.url;
+export async function handler(event, context) {
+    const encodedUrl = event.queryStringParameters.url;
 
-    if (!url) {
+    if (!encodedUrl) {
         return {
             statusCode: 400,
-            body: 'Missing URL parameter',
+            headers: {
+                "Access-Control-Allow-Origin": "*"
+            },
+            body: "Missing 'url' query parameter"
         };
     }
 
+    const targetUrl = decodeURIComponent(encodedUrl);
+    console.log("Proxying request to:", targetUrl);
+
     try {
-        const response = await fetch(url);
-        const contentType = response.headers.get('content-type') || 'text/plain';
-        const body = await response.text();
+        const response = await fetch(targetUrl);
+        const bodyText = await response.text();
+        const contentType = response.headers.get("content-type") || "text/plain";
+
+        if (!response.ok) {
+            console.error("Upstream error:", bodyText);
+            return {
+                statusCode: response.status,
+                headers: {
+                    "Content-Type": contentType,
+                    "Access-Control-Allow-Origin": "*"
+                },
+                body: bodyText
+            };
+        }
 
         return {
-            statusCode: response.status,
-            headers: { 'Content-Type': contentType },
-            body,
+            statusCode: 200,
+            headers: {
+                "Content-Type": contentType,
+                "Access-Control-Allow-Origin": "*"
+            },
+            body: bodyText
         };
-    } catch (err) {
-        console.error('Proxy fetch failed:', err);
+    } catch (error) {
+        console.error("Proxy fetch failed:", error.message);
         return {
             statusCode: 500,
-            body: 'Proxy fetch failed: ' + err.message,
+            headers: {
+                "Access-Control-Allow-Origin": "*"
+            },
+            body: `Error proxying to ${targetUrl}: ${error.message}`
         };
     }
 }
