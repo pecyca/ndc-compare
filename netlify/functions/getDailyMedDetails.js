@@ -2,53 +2,43 @@
 
 export async function handler(event, context) {
     const rxCui = event.queryStringParameters.rxCui || event.queryStringParameters.rxcui;
-
-    console.log("Calling getDailyMedDetails with RxCUI:", rxCui);
-
     if (!rxCui) {
         return {
             statusCode: 400,
-            headers: {
-                "Access-Control-Allow-Origin": "*"
-            },
+            headers: { "Access-Control-Allow-Origin": "*" },
             body: "Missing rxCui"
         };
     }
 
     const splUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?rxnorm=${rxCui}`;
-    console.log("Fetching from:", splUrl);
-
     try {
-        const response = await fetch(splUrl);
-        const bodyText = await response.text();
-        const contentType = response.headers.get("content-type") || "text/plain";
+        const splResponse = await fetch(splUrl);
+        const splText = await splResponse.text();
+        if (!splResponse.ok) throw new Error(`SPL fetch failed: ${splText}`);
 
-        if (!response.ok) {
-            console.error("DailyMed error:", bodyText);
-            return {
-                statusCode: response.status,
-                headers: {
-                    "Content-Type": contentType,
-                    "Access-Control-Allow-Origin": "*"
-                },
-                body: bodyText
-            };
+        const splData = JSON.parse(splText);
+        const firstSPL = splData.data?.[0];
+        if (!firstSPL?.setid) {
+            throw new Error("No SPL data found for RxCUI");
         }
 
-        // Try parsing body as JSON (DailyMed sometimes returns XML/HTML error page)
-        let data;
-        try {
-            data = JSON.parse(bodyText);
-        } catch (parseErr) {
-            console.error("Invalid JSON from DailyMed:", bodyText);
-            return {
-                statusCode: 502,
-                headers: {
-                    "Content-Type": contentType,
-                    "Access-Control-Allow-Origin": "*"
-                },
-                body: "Invalid response from DailyMed"
-            };
+        const setid = firstSPL.setid;
+        const title = firstSPL.title;
+
+        const sectionsUrl = `https://dailymed.nlm.nih.gov/dailymed/services/v2/spls/${setid}/sections.json`;
+        const sectionsResponse = await fetch(sectionsUrl);
+        const sectionsText = await sectionsResponse.text();
+        if (!sectionsResponse.ok) throw new Error(`Sections fetch failed: ${sectionsText}`);
+
+        const sectionsData = JSON.parse(sectionsText);
+        const sectionMap = {};
+
+        for (const section of sectionsData.data || []) {
+            const name = section.title?.trim() || section.section || "Unknown Section";
+            const content = section.text?.trim() || "";
+            if (name && content) {
+                sectionMap[name] = content;
+            }
         }
 
         return {
@@ -57,16 +47,19 @@ export async function handler(event, context) {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                setid,
+                title,
+                sections: sectionMap
+            })
         };
-    } catch (error) {
-        console.error("Fetch failed:", error.message);
+
+    } catch (err) {
+        console.error("getDailyMedDetails error:", err.message);
         return {
             statusCode: 500,
-            headers: {
-                "Access-Control-Allow-Origin": "*"
-            },
-            body: `Server error: ${error.message}`
+            headers: { "Access-Control-Allow-Origin": "*" },
+            body: `Server error: ${err.message}`
         };
     }
 }

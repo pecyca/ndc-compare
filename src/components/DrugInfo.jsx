@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { getRxCui, getBrandName, getForm } from '../utils/rxnorm';
 import { getDailyMedDetails } from '../utils/dailymed';
 import { getShortageInfo } from '../utils/shortages';
-import ImageGallery from './ImageGallery';
 
 const DrugInfo = ({ ndc, label }) => {
     const [info, setInfo] = useState(null);
@@ -18,12 +17,17 @@ const DrugInfo = ({ ndc, label }) => {
                 const rxCui = await getRxCui(ndc);
                 if (!rxCui) throw new Error('No RxCUI found for this NDC.');
 
-                const [brand, form, dailyMed, shortage] = await Promise.all([
+                const [brand, form, dailyMed] = await Promise.all([
                     getBrandName(rxCui),
                     getForm(rxCui),
                     getDailyMedDetails(rxCui),
-                    getShortageInfo(rxCui),
                 ]);
+
+                // Extract title from DailyMed as fallback for shortage lookup
+                const fallbackName = dailyMed?.title?.toLowerCase().replace(/\s+/g, ' ').trim() || '';
+                const shortage = fallbackName
+                    ? await getShortageInfo(fallbackName)
+                    : null;
 
                 setInfo({
                     ndc,
@@ -65,10 +69,8 @@ const DrugInfo = ({ ndc, label }) => {
             )}
 
             {shortage && (
-                <p className="text-yellow-600 font-medium">⚠️ Shortage: {shortage}</p>
+                <p className="text-yellow-600 font-medium">{shortage}</p>
             )}
-
-            <ImageGallery ndc={ndc} rxCui={rxCui} />
 
             {Object.keys(sections).length > 0 ? (
                 <div className="mt-4">
