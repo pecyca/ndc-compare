@@ -1,6 +1,7 @@
 ﻿// utils/rxnorm.js
 
 const RXNAV_PROXY_BASE = 'https://ndc-compare-backend.onrender.com/proxy/rxnav';
+const API_BASE = 'https://ndc-compare-backend.onrender.com';
 
 export async function getRxCui(ndc) {
     const formatted = ndc.padStart(11, '0').replace(/(\d{5})(\d{4})(\d{2})/, '$1-$2-$3');
@@ -43,48 +44,20 @@ export async function getFormFromRxCui(rxCui) {
     }
 }
 
-function normalizeStrength(strength) {
-    if (!strength) return null;
-    const match = strength.match(/[\d.]+/g);
-    return match ? match.join(" ") : null;
-}
-
-// 🔬 Main comparison logic
+// ✅ New backend-driven equivalency logic
 export async function compareDrugsEquivalency(ndc1, ndc2) {
     try {
-        const [res1, res2] = await Promise.all([
-            fetch(`https://ndc-compare-backend.onrender.com/query?ndc=${ndc1}`),
-            fetch(`https://ndc-compare-backend.onrender.com/query?ndc=${ndc2}`)
-        ]);
-        const [data1Wrapped, data2Wrapped] = await Promise.all([res1.json(), res2.json()]);
+        const res = await fetch(`${API_BASE}/compare-equivalency?ndc1=${encodeURIComponent(ndc1)}&ndc2=${encodeURIComponent(ndc2)}`);
+        const data = await res.json();
 
-        const data1 = data1Wrapped.result;
-        const data2 = data2Wrapped.result;
-
-        if (!data1 || !data2 || !data1.TE_Code || !data2.TE_Code) {
-            console.warn("⚠️ One or both drugs missing TE_Code — skipping TE comparison");
+        if (res.ok && data) {
+            console.log("🧪 Backend Equivalency Result:", data);
+            return data;
+        } else {
+            throw new Error(data?.error || 'Unknown error from /compare-equivalency');
         }
-
-        const teMatch = data1.TE_Code === data2.TE_Code;
-        const applMatch = data1.Appl_No === data2.Appl_No;
-
-        const strength1 = normalizeStrength(data1.Strength);
-        const strength2 = normalizeStrength(data2.Strength);
-        const strengthMatch = strength1 === strength2;
-
-        const matchSummary = {
-            teMatch,
-            applMatch,
-            strengthMatch,
-            overallMatch: teMatch && applMatch && strengthMatch,
-            ndc1: { ndc: ndc1, ...data1, normalizedStrength: strength1 },
-            ndc2: { ndc: ndc2, ...data2, normalizedStrength: strength2 }
-        };
-
-        console.log("🧪 Equivalency Result:", matchSummary);
-        return matchSummary;
     } catch (error) {
-        console.error("❌ Error comparing drugs:", error);
+        console.error("❌ Error comparing drugs via backend:", error);
         return {
             teMatch: false,
             applMatch: false,
