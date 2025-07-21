@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+﻿import fetch from "node-fetch";
 
 export async function handler(event) {
     const name = event.queryStringParameters?.name;
@@ -6,7 +6,7 @@ export async function handler(event) {
     if (!name) {
         return {
             statusCode: 400,
-            body: "Missing 'name' query parameter"
+            body: JSON.stringify({ status: "error", message: "Missing 'name' query parameter" })
         };
     }
 
@@ -16,25 +16,35 @@ export async function handler(event) {
         .replace(/(^-|-$)/g, '');
 
     const url = `https://dps.fda.gov/drugshortages/activeingredient/${slug}`;
+    console.log(`Fetching shortage info for: ${name} → slug: ${slug}`);
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                "User-Agent": "ndc-compare-app (Netlify Function)",
+                "Accept": "text/html"
+            }
+        });
+
         const html = await response.text();
 
-        if (response.status === 404 || html.includes("No matches found")) {
+        const noMatch = html.toLowerCase().includes("no matches found");
+
+        if (response.status === 404 || noMatch) {
             return {
                 statusCode: 200,
                 body: JSON.stringify({ status: "not_found" })
             };
         }
 
-        const isActive = html.includes("Estimated Resupply Date") ||
+        const isActive =
+            html.includes("Estimated Resupply Date") ||
             html.includes("Reason for Shortage") ||
             html.includes("Product Strength");
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ status: isActive ? "active" : "none" })
+            body: JSON.stringify({ status: isActive ? "active" : "inactive" })
         };
     } catch (err) {
         console.error("Error fetching DPS shortage:", err);

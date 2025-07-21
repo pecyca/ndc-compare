@@ -5,6 +5,10 @@
 [functions]
   directory = "netlify/functions"
 
+[dev]
+  targetPort = 3000
+  autoLaunch = true
+
 [[redirects]]
   from = "/netlify/functions/*"
   to = "/.netlify/functions/:splat"

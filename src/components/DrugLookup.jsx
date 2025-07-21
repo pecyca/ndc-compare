@@ -1,66 +1,59 @@
-// src/components/DrugLookup.jsx
-import React from 'react';
+// components/DrugLookup.jsx
+
+import React, { useEffect, useState } from 'react';
+import DrugInfo from './DrugInfo';
 import { getRxCui } from '../utils/rxnorm';
 
-function DrugLookup({ ndc1, ndc2, setNdc1, setNdc2, setMatchStatus }) {
-    const [error, setError] = React.useState('');
+const DrugLookup = ({ ndc1, ndc2 }) => {
+    const [rxCui1, setRxCui1] = useState(null);
+    const [rxCui2, setRxCui2] = useState(null);
+    const [matchMessage, setMatchMessage] = useState('');
 
-    const handleCompare = async () => {
-        setError('');
-        setMatchStatus(null);
+    useEffect(() => {
+        async function compareRxCuis() {
+            if (!ndc1) return;
 
-        if (!ndc1 && !ndc2) {
-            setError('Please enter at least one NDC.');
-            return;
-        }
+            const first = await getRxCui(ndc1);
+            const second = ndc2 ? await getRxCui(ndc2) : null;
 
-        try {
-            const rx1 = ndc1 ? await getRxCui(ndc1) : null;
-            const rx2 = ndc2 ? await getRxCui(ndc2) : null;
+            setRxCui1(first);
+            setRxCui2(second);
 
-            if (rx1 && rx2) {
-                setMatchStatus(
-                    rx1 === rx2
-                        ? '✅ RX Match by RxCUI'
-                        : '⚠️ Different RxCUI — may still be clinically equivalent'
-                );
-            } else if (rx1 || rx2) {
-                setMatchStatus('ℹ️ Partial match — only one valid RxCUI found');
+            if (first && second) {
+                setMatchMessage(first === second
+                    ? '✅ RX Match by RxCUI'
+                    : '❌ Different drugs by RxCUI');
             } else {
-                setMatchStatus('❌ No RxCUI found for either NDC');
+                setMatchMessage('');
             }
-        } catch (err) {
-            console.error('Comparison failed:', err);
-            setError('Error during comparison: ' + err.message);
         }
-    };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') handleCompare();
-    };
+        compareRxCuis();
+    }, [ndc1, ndc2]);
 
     return (
-        <div className="lookup-form">
-            <h2>NDC Comparison & Drug Lookup</h2>
-            <p>Enter one or two NDCs to look up or compare.</p>
-            <input
-                type="text"
-                value={ndc1}
-                placeholder="Enter NDC 1"
-                onChange={(e) => setNdc1(e.target.value)}
-                onKeyDown={handleKeyDown}
-            />
-            <input
-                type="text"
-                value={ndc2}
-                placeholder="Enter NDC 2 (optional)"
-                onChange={(e) => setNdc2(e.target.value)}
-                onKeyDown={handleKeyDown}
-            />
-            <button onClick={handleCompare}>Compare</button>
-            {error && <p className="error text-red-600 mt-2">{error}</p>}
+        <div>
+            {matchMessage && (
+                <div className="match-status">
+                    {matchMessage}
+                </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 border p-4 bg-white shadow">
+                    <h2 className="font-bold mb-2">Drug 1</h2>
+                    <DrugInfo ndc={ndc1} />
+                </div>
+
+                {ndc2 && (
+                    <div className="flex-1 border p-4 bg-white shadow">
+                        <h2 className="font-bold mb-2">Drug 2</h2>
+                        <DrugInfo ndc={ndc2} />
+                    </div>
+                )}
+            </div>
         </div>
     );
-}
+};
 
 export default DrugLookup;

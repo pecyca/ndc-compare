@@ -1,46 +1,80 @@
-// src/App.jsx
-import React, { useState } from "react";
-import DrugLookup from './components/DrugLookup.jsx';
-import DrugInfo from './components/DrugInfo.jsx';
-import "./App.css";
+﻿// App.jsx
+
+import React, { useState } from 'react';
+import DrugInfo from './components/DrugInfo';
+import './App.css';
+import './components/DrugInfo.css';
 
 function App() {
-    const [ndc1, setNdc1] = useState("");
-    const [ndc2, setNdc2] = useState("");
-    const [matchStatus, setMatchStatus] = useState(null);
+    const [ndc, setNdc] = useState('');
+    const [ndc2, setNdc2] = useState('');
+    const [submittedNdc, setSubmittedNdc] = useState('');
+    const [submittedNdc2, setSubmittedNdc2] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [darkMode, setDarkMode] = useState(false);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (ndc.trim()) {
+            setSubmittedNdc(ndc.trim());
+            setSubmittedNdc2(ndc2.trim());
+        }
+    };
 
     const handleReset = () => {
-        setNdc1("");
-        setNdc2("");
-        setMatchStatus(null);
+        setNdc('');
+        setNdc2('');
+        setSubmittedNdc('');
+        setSubmittedNdc2('');
+        setSearchTerm('');
     };
 
     return (
-        <div className="App">
-            <h1>NDC Comparison Tool</h1>
-            <DrugLookup
-                ndc1={ndc1}
-                ndc2={ndc2}
-                setNdc1={setNdc1}
-                setNdc2={setNdc2}
-                setMatchStatus={setMatchStatus}
-            />
-            {matchStatus && (
-                <div className="match-status bg-green-100 text-green-800 p-2 mt-2 rounded shadow">
-                    {matchStatus}
-                </div>
-            )}
-            {(ndc1 || ndc2) && (
-                <div className="drug-info-section mt-6 space-y-6">
-                    {ndc1 && <DrugInfo ndc={ndc1} label="Drug 1" />}
-                    {ndc2 && <DrugInfo ndc={ndc2} label="Drug 2" />}
-                    <button
-                        onClick={handleReset}
-                        className="reset-button mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                    >
+        <div className={`app-container ${darkMode ? 'dark' : ''}`}>
+            <div className="header-controls">
+                <form onSubmit={handleSubmit} style={{ flexGrow: 1 }}>
+                    <input
+                        type="text"
+                        value={ndc}
+                        onChange={(e) => setNdc(e.target.value)}
+                        placeholder="Enter NDC #1 (e.g. 59762-3722-01)"
+                    />
+                    <input
+                        type="text"
+                        value={ndc2}
+                        onChange={(e) => setNdc2(e.target.value)}
+                        placeholder="Enter NDC #2 (optional)"
+                    />
+                    <button type="submit">Lookup</button>
+                    <button type="button" onClick={handleReset}>
                         Reset
                     </button>
-                </div>
+                </form>
+
+                <input
+                    type="text"
+                    placeholder="Search drug info..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+
+                <label className="toggle-container">
+                    Dark Mode
+                    <input
+                        type="checkbox"
+                        checked={darkMode}
+                        onChange={() => setDarkMode((prev) => !prev)}
+                    />
+                </label>
+            </div>
+
+            {submittedNdc && (
+                <DrugInfo
+                    ndc={submittedNdc}
+                    ndc2={submittedNdc2}
+                    searchTerm={searchTerm}
+                    darkMode={darkMode}
+                />
             )}
         </div>
     );
