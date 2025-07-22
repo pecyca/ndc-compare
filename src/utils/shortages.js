@@ -1,10 +1,12 @@
-// utils/shortages.js
+﻿// utils/shortages.js
+
+const BACKEND_BASE = 'https://ndc-compare-backend.onrender.com';
 
 export async function getShortageInfo(drugName, ndc = null) {
     try {
         const url = ndc
-            ? `/api/shortage-status?ndc=${encodeURIComponent(ndc)}`
-            : `/.netlify/functions/getDpsShortage?name=${encodeURIComponent(drugName)}`;
+            ? `${BACKEND_BASE}/shortage-status?ndc=${encodeURIComponent(ndc)}`
+            : `${BACKEND_BASE}/getDpsShortage?name=${encodeURIComponent(drugName)}`;
 
         const response = await fetch(url);
 
@@ -23,10 +25,10 @@ export async function getShortageInfo(drugName, ndc = null) {
             return 'Available';
         }
 
-        // Fallback: openFDA or Netlify function call
+        // Fallback: openFDA or generic name lookup
         return data?.status || 'No data';
     } catch (err) {
-        console.warn(`Shortage fetch failed for "${drugName || ndc}":`, err.message);
+        console.warn(`⚠️ Shortage fetch failed for "${drugName || ndc}":`, err.message);
         return 'No data';
     }
 }

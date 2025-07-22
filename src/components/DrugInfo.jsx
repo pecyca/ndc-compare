@@ -33,6 +33,7 @@ const DrugInfo = ({ ndc, ndc2, darkMode, searchTerm }) => {
                 const shortage = await checkShortageStatus(ndcValue, RENDER_API);
                 const discontinued = await checkDiscontinuedStatus(ndcValue, RENDER_API);
 
+
                 labelSetter({
                     rxCui: rxCui || 'Not found',
                     brandName: brand || 'Unknown',
